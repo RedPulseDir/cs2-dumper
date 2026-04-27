@@ -47,9 +47,9 @@ impl ProcessSelector {
                 if let Ok(os) = memflow_native::create_os(&OsArgs::default(), LibArc::default()) {
                     if let Ok(list) = os.process_info_list() {
                         for info in list {
-                            // Правильно извлекаем данные из memflow::os::ProcessInfo
+                            // info.name — ReprCString, info.pid — Pid (обёртка над u32)
                             let name_str = info.name.to_string();
-                            let pid_val = info.pid.0 as u32;
+                            let pid_val = info.pid.0; // Pid имеет поле .0 типа u32
 
                             proc_list.push(ProcessInfo {
                                 name: name_str,
@@ -62,7 +62,6 @@ impl ProcessSelector {
 
             #[cfg(not(windows))]
             {
-                // На Linux/Mac используем системные команды
                 use std::process::Command;
 
                 if let Ok(output) = Command::new("ps")
@@ -75,10 +74,7 @@ impl ProcessSelector {
                         if parts.len() > 10 {
                             if let Ok(pid) = parts[1].parse::<u32>() {
                                 let name = parts[10..].join(" ");
-                                proc_list.push(ProcessInfo {
-                                    name,
-                                    pid,
-                                });
+                                proc_list.push(ProcessInfo { name, pid });
                             }
                         }
                     }
@@ -86,7 +82,6 @@ impl ProcessSelector {
             }
 
             proc_list.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
-
             *processes.lock() = proc_list;
         });
 
@@ -179,4 +174,4 @@ impl ProcessSelector {
     pub fn get_selected(&self) -> Option<String> {
         self.selected_process.clone()
     }
-                            }
+                }
