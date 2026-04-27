@@ -1,17 +1,14 @@
 use eframe::egui::{self, FontId, RichText, Visuals};
+use std::sync::Arc;
 
 pub fn setup_custom_fonts(ctx: &egui::Context) {
     let mut fonts = egui::FontDefinitions::default();
 
-    fonts.font_data.insert(
-        "JetBrainsMono".to_owned(),
-        egui::FontData::from_static(include_bytes!("../../assets/JetBrainsMono-Regular.ttf")),
-    );
+    let regular_font = egui::FontData::from_static(include_bytes!("../../assets/JetBrainsMono-Regular.ttf"));
+    let bold_font = egui::FontData::from_static(include_bytes!("../../assets/JetBrainsMono-Bold.ttf"));
 
-    fonts.font_data.insert(
-        "JetBrainsMonoBold".to_owned(),
-        egui::FontData::from_static(include_bytes!("../../assets/JetBrainsMono-Bold.ttf")),
-    );
+    fonts.font_data.insert("JetBrainsMono".to_owned(), Arc::new(regular_font));
+    fonts.font_data.insert("JetBrainsMonoBold".to_owned(), Arc::new(bold_font));
 
     fonts
         .families
