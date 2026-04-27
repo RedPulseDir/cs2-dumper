@@ -70,12 +70,10 @@ struct Args {
 fn main() -> Result<()> {
     let args_vec: Vec<String> = env::args().collect();
 
-    // Если запущено без аргументов или с --gui, запускаем GUI
     if args_vec.len() == 1 || args_vec.contains(&"--gui".to_string()) {
         return run_gui();
     }
 
-    // Иначе CLI режим
     run_cli()
 }
 
@@ -100,11 +98,11 @@ fn run_gui() -> Result<()> {
 
 fn load_icon() -> egui::IconData {
     let icon_bytes = include_bytes!("../assets/icon.png");
-    
+
     let image = image::load_from_memory(icon_bytes)
         .expect("Failed to load icon")
         .into_rgba8();
-    
+
     let (width, height) = image.dimensions();
     let rgba = image.into_raw();
 
@@ -183,4 +181,4 @@ fn run_cli() -> Result<()> {
     info!("analysis completed in {:.2?}", now.elapsed());
 
     Ok(())
-            }
+        }
