@@ -56,6 +56,32 @@ impl ProcessSelector {
                 }
             }
 
+            #[cfg(not(windows))]
+            {
+                // На Linux/Mac используем системные команды
+                use std::process::Command;
+
+                if let Ok(output) = Command::new("ps")
+                    .args(&["aux"])
+                    .output()
+                {
+                    let stdout = String::from_utf8_lossy(&output.stdout);
+                    for line in stdout.lines() {
+                        let parts: Vec<&str> = line.split_whitespace().collect();
+                        if parts.len() > 10 {
+                            let pid_str = parts[1];
+                            if let Ok(pid) = pid_str.parse::<u32>() {
+                                let name = parts[10..].join(" ");
+                                proc_list.push(ProcessInfo {
+                                    name,
+                                    pid,
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+
             proc_list.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
 
             *processes.lock() = proc_list;
@@ -87,10 +113,12 @@ impl ProcessSelector {
             ui.add_space(10.0);
 
             let processes = self.processes.lock();
-            let cs2_exists = processes.iter().any(|p| p.name.to_lowercase() == "cs2.exe");
+            let cs2_exists = processes.iter().any(|p| p.name.to_lowercase().contains("cs2"));
 
             if cs2_exists && self.selected_process.is_none() {
-                self.selected_process = Some("cs2.exe".to_string());
+                if let Some(cs2_proc) = processes.iter().find(|p| p.name.to_lowercase().contains("cs2")) {
+                    self.selected_process = Some(cs2_proc.name.clone());
+                }
             }
 
             if !cs2_exists {
@@ -148,4 +176,4 @@ impl ProcessSelector {
     pub fn get_selected(&self) -> Option<String> {
         self.selected_process.clone()
     }
-}
+                }
