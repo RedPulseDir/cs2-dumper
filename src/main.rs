@@ -1,24 +1,23 @@
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 #![allow(dead_code)]
 #![allow(unused_imports)]
 
+use std::env;
 use std::fs::File;
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::time::Instant;
 
 use anyhow::Result;
-
 use clap::{ArgAction, Parser};
-
 use log::{LevelFilter, info};
-
 use memflow::prelude::v1::*;
-
 use simplelog::*;
 
 use output::Output;
 
 mod analysis;
+mod gui;
 mod memory;
 mod output;
 mod source2;
@@ -26,6 +25,10 @@ mod source2;
 #[derive(Debug, Parser)]
 #[command(author, version)]
 struct Args {
+    /// Run in GUI mode (default if no args provided)
+    #[arg(long)]
+    gui: bool,
+
     /// The name of the memflow connector to use.
     #[arg(short, long)]
     connector: Option<String>,
@@ -65,6 +68,54 @@ struct Args {
 }
 
 fn main() -> Result<()> {
+    let args_vec: Vec<String> = env::args().collect();
+
+    // Если запущено без аргументов или с --gui, запускаем GUI
+    if args_vec.len() == 1 || args_vec.contains(&"--gui".to_string()) {
+        return run_gui();
+    }
+
+    // Иначе CLI режим
+    run_cli()
+}
+
+fn run_gui() -> Result<()> {
+    use eframe::egui;
+
+    let options = eframe::NativeOptions {
+        viewport: egui::ViewportBuilder::default()
+            .with_inner_size([1400.0, 900.0])
+            .with_min_inner_size([1200.0, 700.0])
+            .with_icon(load_icon()),
+        ..Default::default()
+    };
+
+    eframe::run_native(
+        "CS2 Dumper",
+        options,
+        Box::new(|cc| Ok(Box::new(gui::DumperApp::new(cc)))),
+    )
+    .map_err(|e| anyhow::anyhow!("GUI error: {}", e))
+}
+
+fn load_icon() -> egui::IconData {
+    let icon_bytes = include_bytes!("../assets/icon.png");
+    
+    let image = image::load_from_memory(icon_bytes)
+        .expect("Failed to load icon")
+        .into_rgba8();
+    
+    let (width, height) = image.dimensions();
+    let rgba = image.into_raw();
+
+    egui::IconData {
+        rgba,
+        width,
+        height,
+    }
+}
+
+fn run_cli() -> Result<()> {
     let args = Args::parse();
 
     let level_filter = match args.verbose {
@@ -82,7 +133,6 @@ fn main() -> Result<()> {
         ColorChoice::Auto,
     )];
 
-    // Create the log file by default.
     if !args.no_log_file {
         loggers.push(WriteLogger::new(
             LevelFilter::Info,
@@ -133,4 +183,4 @@ fn main() -> Result<()> {
     info!("analysis completed in {:.2?}", now.elapsed());
 
     Ok(())
-}
+            }
